@@ -12,6 +12,8 @@ def send_welcome(message):
     bot.reply_to(message, "Привет, я бот, который поможет тебе перевести транслит")
 
 
+#Парсинг текста на символы, дописать для парсинга по последовательностям,
+# count, максимальная последовательность для языка
 def parse_text(text, count, dictionary):
     len_text = len(text)
     result_text = str()
@@ -34,6 +36,7 @@ def parse_text(text, count, dictionary):
         parse_text(result_text, count - 1, dictionary)
 
 
+#Запрос к API, добавить проверку кода ответа и выбрасывание исключений
 def get_translate(lang, text):
     url = f'https://api.mymemory.translated.net/get?q={text}&langpair={lang}|ru'
 
@@ -43,6 +46,7 @@ def get_translate(lang, text):
     return translate_string
 
 
+#Ответ бота
 @bot.message_handler(func=lambda message: True)
 def convert_message(message):
     language_dict = Alphabet.get_alphabet_dict('georgian')
