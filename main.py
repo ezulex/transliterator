@@ -18,7 +18,8 @@ def parse_text(text, count, dictionary):
     result_text = str()
     i = 0
     while 1:
-        if i > len(text): break
+        if i >= len(text):
+            break
         if text[i:i + count] in dictionary:
             result_text += dictionary[text[i:i + count]]
             i += count
