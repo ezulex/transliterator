@@ -1,69 +1,78 @@
+import os
 import requests
 import telebot
 from alphabet import Alphabet
+from dotenv import load_dotenv
 
-TG_API_TOKEN = ''
-
+load_dotenv()
+TG_API_TOKEN = os.environ.get("TG_API_TOKEN")
 bot = telebot.TeleBot(TG_API_TOKEN)
 
 
 @bot.message_handler(commands=['help', 'start'])
 def send_welcome(message):
-    bot.reply_to(message, "Привет, я бот, который поможет тебе перевести транслит")
+    bot.reply_to(message, "Привет, я помогу перевести тебе транслит, просто пришли сообщение")
 
 
-#Парсинг текста на символы, дописать для парсинга по последовательностям,
-# count, максимальная последовательность для языка
 def parse_text(text, count, dictionary):
-    len_text = len(text)
     result_text = str()
-    last_result = True
-    for i in range(0, len_text):
-        if text[i:i + count] in dictionary.keys():
-            temp_text = dictionary[text[i:i + count]]
-            last_result = True
+    i = 0
+    while 1:
+        if i > len(text): break
+        if text[i:i + count] in dictionary:
+            result_text += dictionary[text[i:i + count]]
+            i += count
+        elif text[i:i + count - 1] in dictionary:
+            result_text += dictionary[text[i:i + count - 1]]
+            i += count - 1
+        elif text[i] in dictionary:
+            result_text += dictionary[text[i]]
+            i += 1
         else:
-            if not last_result:
-                temp_text = text[i:i + count][-1]
-            else:
-                temp_text = text[i:i + count]
-                last_result = False
-        result_text = result_text + temp_text
-
-    if count == 1:
-        return result_text
-    else:
-        parse_text(result_text, count - 1, dictionary)
+            result_text += text[i]
+            i += 1
+    return result_text
 
 
-#Запрос к API, добавить проверку кода ответа и выбрасывание исключений
 def get_translate(lang, text):
     url = f'https://api.mymemory.translated.net/get?q={text}&langpair={lang}|ru'
 
-    response = requests.get(url)
-    response_data = response.json()
-    translate_string = response_data["responseData"]["translatedText"]
-    return translate_string
+    try:
+        response = requests.get(url)
+    except requests.ConnectionError as e:
+        print("Ошибка подключения:", e)
+        translate_string = "При переводе что-то пошло не так"
+    except requests.Timeout as e:
+        print("Ошибка тайм-аута:", e)
+        translate_string = "При переводе что-то пошло не так"
+    except requests.RequestException as e:
+        print("Ошибка запроса:", e)
+        translate_string = "При переводе что-то пошло не так"
+    else:
+        if response.status_code == 200:
+            response_data = response.json()
+            translate_string = response_data["responseData"]["translatedText"]
+        else:
+            translate_string = "При переводе что-то пошло не так"
+    finally:
+        return translate_string
 
 
-#Ответ бота
 @bot.message_handler(func=lambda message: True)
 def convert_message(message):
-    language_dict = Alphabet.get_alphabet_dict('georgian')
-    actual_text = message.text.lower()
-    reply_text = str()
+    global letter_length, language_dict, lang_abbr_api
+    select_lang = 'georgian'
+    actual_text = message.text
 
-    len_actual_text = len(actual_text)
+    # Условие для будущего добавления языков, в select_lang будем получать из бота выбранный язык перевода
+    if select_lang == 'georgian':
+        language_dict = Alphabet.get_alphabet_dict('georgian')
+        letter_length = 3
+        lang_abbr_api = 'ka'
 
-    #Переписать в функции parse_text для работы с последовательностью символов, а не по одному
-    for i in range(0, len_actual_text):
-        if actual_text[i] in language_dict.keys():
-            temp_text = language_dict[actual_text[i]]
-        else:
-            temp_text = actual_text[i]
-        reply_text = reply_text + temp_text
+    reply_text = parse_text(actual_text, letter_length, language_dict)
+    translate_text = get_translate(lang_abbr_api, reply_text)
 
-    translate_text = get_translate('ka',reply_text)
     result_text = reply_text + '\n\n' + translate_text
     bot.reply_to(message, result_text)
 
