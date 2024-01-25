@@ -1,4 +1,4 @@
-class Alphabet():
+class Alphabet:
     @staticmethod
     def get_alphabet_dict(language):
         if language == 'georgian':
