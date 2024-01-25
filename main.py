@@ -17,19 +17,26 @@ def send_welcome(message):
 def parse_text(text, count, dictionary):
     result_text = str()
     i = 0
+    add_letter = 0
     while 1:
         if i >= len(text):
             break
-        if text[i:i + count] in dictionary:
-            result_text += dictionary[text[i:i + count]]
-            i += count
-        elif text[i:i + count - 1] in dictionary:
-            result_text += dictionary[text[i:i + count - 1]]
-            i += count - 1
-        elif text[i] in dictionary:
-            result_text += dictionary[text[i]]
-            i += 1
-        else:
+        for k in range(count, -1, -1):
+            if k == 0:
+                if text[i:i + k + 1] in dictionary:
+                    result_text += dictionary[text[i:i + k + 1]]
+                    add_letter = 1
+                    i += k + 1
+                else:
+                    add_letter = 0
+            elif k != 0:
+                if text[i:i + k] in dictionary:
+                    result_text += dictionary[text[i:i + k]]
+                    add_letter = 1
+                    i += k
+                else:
+                    add_letter = 0
+        if add_letter == 0:
             result_text += text[i]
             i += 1
     return result_text
